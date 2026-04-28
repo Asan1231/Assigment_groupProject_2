@@ -4,6 +4,7 @@ import json
 import os
 
 from snake import SnakeGame
+from tetris import TetrisGame    
 
 SCREEN_W, SCREEN_H = 640, 480
 FPS = 60
@@ -21,7 +22,8 @@ RED    = (220,  50,  50)
 
 SAVES_FILE = "saves/records.json"
 
-# ── утилиты ────────────────────────────────────────────────
+
+# ── Утилиты ────────────────────────────────────────────────
 
 def load_records() -> dict:
     os.makedirs("saves", exist_ok=True)
@@ -38,7 +40,6 @@ def save_records(records: dict) -> None:
 
 
 def draw_pixel_text(surface, font, text, x, y, color=WHITE, shadow=True):
-    # Рисует текст с однопиксельной тенью — пиксельный стиль.
     if shadow:
         s = font.render(text, False, BLACK)
         surface.blit(s, (x + 2, y + 2))
@@ -47,29 +48,28 @@ def draw_pixel_text(surface, font, text, x, y, color=WHITE, shadow=True):
 
 
 def draw_pixel_rect(surface, color, rect, border=2):
-    """Рамка в пиксельном стиле (без сглаживания)."""
     pygame.draw.rect(surface, color, rect)
     pygame.draw.rect(surface, WHITE, rect, border)
 
 
-# ── экран меню ─────────────────────────────────────────────
+# ── Меню ───────────────────────────────────────────────────
 
 class MenuItem:
     def __init__(self, label: str, key: str, color):
-        self.label = label
-        self.key = key          # идентификатор игры
-        self.color = color
+        self.label   = label
+        self.key     = key
+        self.color   = color
         self.hovered = False
 
     def draw(self, surface, font, x, y, w=260, h=44):
-        bg = self.color if self.hovered else DGRAY
+        bg   = self.color if self.hovered else DGRAY
         rect = pygame.Rect(x, y, w, h)
         draw_pixel_rect(surface, bg, rect, border=2)
-        lbl = f"> {self.label}" if self.hovered else f"  {self.label}"
+        lbl  = f"> {self.label}" if self.hovered else f"  {self.label}"
         draw_pixel_text(surface, font, lbl, x + 12, y + 10, WHITE)
 
-    def hit(self, mouse_x, mouse_y, x, y, w=260, h=44) -> bool:
-        return pygame.Rect(x, y, w, h).collidepoint(mouse_x, mouse_y)
+    def hit(self, mx, my, x, y, w=260, h=44) -> bool:
+        return pygame.Rect(x, y, w, h).collidepoint(mx, my)
 
 
 class MenuScreen:
@@ -81,10 +81,10 @@ class MenuScreen:
     ]
 
     def __init__(self, screen, fonts, records):
-        self.screen = screen
-        self.fonts = fonts
-        self.records = records
-        self.selected = None        # ключ выбранной игры
+        self.screen   = screen
+        self.fonts    = fonts
+        self.records  = records
+        self.selected = None
 
     def handle(self, event):
         mx, my = pygame.mouse.get_pos()
@@ -95,9 +95,8 @@ class MenuScreen:
                 if item.hovered:
                     self.selected = item.key
             if event.type == pygame.KEYDOWN:
-                # клавиатурное управление 1-4
                 keys = {"1": 0, "2": 1, "3": 2, "4": 3}
-                idx = keys.get(pygame.key.name(event.key))
+                idx  = keys.get(pygame.key.name(event.key))
                 if idx is not None:
                     self.selected = self.ITEMS[idx].key
 
@@ -105,40 +104,34 @@ class MenuScreen:
         s = self.screen
         s.fill(GRAY)
 
-        # пиксельный заголовок
         draw_pixel_text(s, self.fonts["big"],   "PIXEL ARCADE", 152, 40, AMBER)
-        draw_pixel_text(s, self.fonts["small"], "chose a game:", 210, 110, WHITE)
+        draw_pixel_text(s, self.fonts["small"], "choose a game:", 210, 110, WHITE)
 
         ox, oy = 190, 180
         for i, item in enumerate(self.ITEMS):
             item.draw(s, self.fonts["med"], ox, oy + i * 60)
-            # рекорд справа
             rec = self.records.get(item.key, 0)
             if rec:
                 draw_pixel_text(s, self.fonts["small"],
-                                f"рекорд: {rec}", ox + 270, oy + i * 60 + 14, GRAY)
+                                f"best: {rec}", ox + 270, oy + i * 60 + 14, GRAY)
 
         draw_pixel_text(s, self.fonts["small"], "[Q] exit", 10, SCREEN_H - 24, GRAY)
-        
 
 
-# ── заглушка игры ──────────────────────────────────────────
+# ── Заглушка для игр ещё не реализованных ──────────────────
 
 class PlaceholderGame:
-    # Временный экран до реализации каждой игры.
-
-    COLORS = {"snake": TEAL, "tetris": PURPLE, "minesweeper": RED, "sudoku": AMBER}
-    NAMES  = {"snake": "SNAKE", "tetris": "TETRIS",
-               "minesweeper": "MINESWEEPER", "sudoku": "SUDOKU"}
+    COLORS = {"minesweeper": RED, "sudoku": AMBER}
+    NAMES  = {"minesweeper": "MINESWEEPER", "sudoku": "SUDOKU"}
 
     def __init__(self, screen, fonts, key):
         self.screen = screen
-        self.fonts = fonts
-        self.key = key
-        self.done = False
-        self.color = self.COLORS.get(key, WHITE)
-        self.name  = self.NAMES.get(key, key.upper())
-        self._t = 0            # таймер для анимации
+        self.fonts  = fonts
+        self.key    = key
+        self.done   = False
+        self.color  = self.COLORS.get(key, WHITE)
+        self.name   = self.NAMES.get(key, key.upper())
+        self._t     = 0
 
     def handle(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -152,29 +145,22 @@ class PlaceholderGame:
     def draw(self):
         s = self.screen
         s.fill(BLACK)
-
-        # мигающий заголовок
         if (self._t // 20) % 2 == 0:
             draw_pixel_text(s, self.fonts["big"], self.name, 180, 140, self.color)
-
         draw_pixel_text(s, self.fonts["med"],
                         "Game in development...", 130, 220, GRAY)
         draw_pixel_text(s, self.fonts["small"],
-                        "[ESC] or click back to the menu", 150, 300, GRAY)
-
-        # пиксельная рамка
+                        "[ESC] or click — back to menu", 150, 300, GRAY)
         pygame.draw.rect(s, self.color, (40, 40, SCREEN_W - 80, SCREEN_H - 80), 3)
 
 
-# ── главный цикл ───────────────────────────────────────────
-
-# ... (весь код выше без изменений) ...
+# ── Главный цикл ────────────────────────────────────────────
 
 def main():
     pygame.init()
     pygame.display.set_caption(TITLE)
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    clock = pygame.time.Clock()
+    clock  = pygame.time.Clock()
 
     fonts = {
         "big":   pygame.font.SysFont("couriernew", 42, bold=True),
@@ -192,33 +178,36 @@ def main():
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
-                save_records(records)
-                pygame.quit()
-                sys.exit()
-
+                if isinstance(current, MenuScreen):
+                    save_records(records)
+                    pygame.quit()
+                    sys.exit()
             current.handle(event)
 
         # ── Переходы между экранами ──────────────────────────
         if isinstance(current, MenuScreen) and current.selected:
             key = current.selected
             current.selected = None
-            
+
             if key == "snake":
                 current = SnakeGame(screen, fonts, records, draw_pixel_text)
+            elif key == "tetris":
+                current = TetrisGame(screen, fonts, records, draw_pixel_text)  # ← НОВОЕ
             else:
                 current = PlaceholderGame(screen, fonts, key)
 
-        elif hasattr(current, 'done') and current.done:
+        elif hasattr(current, "done") and current.done:
             save_records(records)
             current = MenuScreen(screen, fonts, records)
 
-        # ── Обновление и отрисовка (ВАЖНО!) ──────────────────
+        # ── Обновление и отрисовка ───────────────────────────
         if not isinstance(current, MenuScreen):
             current.update()
 
-        current.draw()          # Отрисовываем текущий экран
-        pygame.display.flip()   # Обновляем дисплей
-        clock.tick(FPS)         # Держим 60 кадров в секунду
+        current.draw()
+        pygame.display.flip()
+        clock.tick(FPS)
+
 
 if __name__ == "__main__":
     main()
