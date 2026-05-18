@@ -4,7 +4,8 @@ import json
 import os
 
 from snake import SnakeGame
-from tetris import TetrisGame    
+from tetris import TetrisGame
+from sudoku import SudokuGame
 
 SCREEN_W, SCREEN_H = 640, 480
 FPS = 60
@@ -111,9 +112,11 @@ class MenuScreen:
         for i, item in enumerate(self.ITEMS):
             item.draw(s, self.fonts["med"], ox, oy + i * 60)
             rec = self.records.get(item.key, 0)
+            
             if rec:
-                draw_pixel_text(s, self.fonts["small"],
-                                f"best: {rec}", ox + 270, oy + i * 60 + 14, GRAY)
+               label = "Wins" if item.key in ["sudoku", "minesweeper"] else "Best"
+               draw_pixel_text(
+                    s, self.fonts["small"], f"{label}: {rec}", ox + 270, oy + i * 60 + 14, GRAY)
 
         draw_pixel_text(s, self.fonts["small"], "[Q] exit", 10, SCREEN_H - 24, GRAY)
 
@@ -193,6 +196,8 @@ def main():
                 current = SnakeGame(screen, fonts, records, draw_pixel_text)
             elif key == "tetris":
                 current = TetrisGame(screen, fonts, records, draw_pixel_text)  # ← НОВОЕ
+            elif key == "sudoku":
+                current = SudokuGame(screen, fonts, records, draw_pixel_text)
             else:
                 current = PlaceholderGame(screen, fonts, key)
 
