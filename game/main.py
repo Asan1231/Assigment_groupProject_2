@@ -6,6 +6,7 @@ import os
 from snake import SnakeGame
 from tetris import TetrisGame
 from sudoku import SudokuGame
+from minesweeper import MinesweeperGame 
 
 SCREEN_W, SCREEN_H = 640, 480
 FPS = 60
@@ -198,6 +199,8 @@ def main():
                 current = TetrisGame(screen, fonts, records, draw_pixel_text)  # ← НОВОЕ
             elif key == "sudoku":
                 current = SudokuGame(screen, fonts, records, draw_pixel_text)
+            elif key == "minesweeper":
+                current = MinesweeperGame(screen, fonts, records, draw_pixel_text)
             else:
                 current = PlaceholderGame(screen, fonts, key)
 
