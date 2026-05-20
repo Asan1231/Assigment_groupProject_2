@@ -2,18 +2,17 @@ import pygame
 import random
 import time
 
-# ─────────────────────────────────────────
-# Настройки сложности
-# ─────────────────────────────────────────
-
+#Difficulty Settings
 DIFFICULTIES = {
     "easy": (8, 8, 10),
     "medium": (12, 12, 22),
     "hard": (16, 16, 45)
 }
 
+# Cell size in pixels
 CELL_SIZE = 28
 
+# Colors of the game
 BG = (22, 22, 30)
 PANEL = (35, 35, 48)
 GRID = (60, 60, 80)
@@ -37,38 +36,45 @@ NUMBER_COLORS = {
     8: (180, 180, 180),
 }
 
+# class MinesweeperGame: that implements the Minesweeper game logic and rendering
 
 class MinesweeperGame:
 
-    def __init__(self, screen, fonts, records, draw_text):
+    # constructor that called when the game is selected from the menu
+
+    def __init__(self, screen, fonts, records, draw_text):    
 
         self.screen = screen
         self.fonts = fonts
         self.records = records
         self.draw_text = draw_text
-
-        self.done = False
+        
+        
+        self.done = False  
 
         self.state = "menu"
 
+        # size and mine count
         self.rows = 0
         self.cols = 0
         self.mines = 0
 
+        #games massives 
         self.board = []
         self.revealed = []
         self.flags = []
 
+        # timer and game state
         self.start_time = 0
         self.game_over = False
         self.win = False
 
-    # ─────────────────────────────────────
+    #start new game with selected difficulty and initialize the board, revealed and flags arrays, place mines and calculate numbers
 
     def start_game(self, difficulty):
 
         self.rows, self.cols, self.mines = DIFFICULTIES[difficulty]
-
+    #create the board (create two-dimensional array) and fill it with zeros (empty cells) and -1 (mines)
         self.board = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
 
         self.revealed = [
@@ -82,17 +88,18 @@ class MinesweeperGame:
         ]
 
         mines = 0
-
+    #Mine placement 
         while mines < self.mines:
 
+        # randomly select a cell and place a mine
             r = random.randint(0, self.rows - 1)
             c = random.randint(0, self.cols - 1)
-
+        # if the cell does not already contain a mine, place a mine and increment the count
             if self.board[r][c] != -1:
                 self.board[r][c] = -1
                 mines += 1
 
-        # числа
+
 
         for r in range(self.rows):
             for c in range(self.cols):
@@ -101,11 +108,14 @@ class MinesweeperGame:
                     continue
 
                 count = 0
-
+             #Checking the neighbors 
                 for i in range(r - 1, r + 2):
                     for j in range(c - 1, c + 2):
 
+                    #Border check(not to go beyond the array.)
                         if 0 <= i < self.rows and 0 <= j < self.cols:
+
+                            #count the number of mine in neighbors
                             if self.board[i][j] == -1:
                                 count += 1
 
@@ -118,29 +128,29 @@ class MinesweeperGame:
 
         self.start_time = time.time()
 
-    # ─────────────────────────────────────
+    # recursive function to reveal cells when player clicks on 0 cell
 
     def reveal(self, row, col):
-
+     #check flags(You cannot open the cage with the flag )
         if self.flags[row][col]:
             return
-
+     #check opening
         if self.revealed[row][col]:
             return
-
+      #oper the cell and mark it as revealed
         self.revealed[row][col] = True
-
+    
         if self.board[row][col] == 0:
-
+         #if the cell is empty (0), recursively reveal all neighboring cells
             for i in range(row - 1, row + 2):
                 for j in range(col - 1, col + 2):
 
                     if 0 <= i < self.rows and 0 <= j < self.cols:
-
+                                     
                         if not self.revealed[i][j]:
                             self.reveal(i, j)
 
-    # ─────────────────────────────────────
+    # check won condition (if all non-mine cells are revealed) and set win and game_over flags accordingly
 
     def check_win(self):
 
@@ -158,16 +168,16 @@ class MinesweeperGame:
             self.win = True
             self.game_over = True
 
-    # ─────────────────────────────────────
+    #Processes: keyboard, mouse
 
     def handle(self, event):
 
         if event.type == pygame.KEYDOWN:
-
+         #Exit to menu
             if event.key == pygame.K_ESCAPE:
                 self.done = True
 
-        # ───────── MENU ─────────
+        #menu 
 
         if self.state == "menu":
 
@@ -182,30 +192,30 @@ class MinesweeperGame:
                 elif event.key == pygame.K_3:
                     self.start_game("hard")
 
-        # ───────── GAME ─────────
+    
 
         elif self.state == "game":
-
+           #handle mouse clicks for openning cells, flag, and restart game after win or lose
             if event.type == pygame.MOUSEBUTTONDOWN:
 
                 mx, my = pygame.mouse.get_pos()
 
                 board_w = self.cols * CELL_SIZE
                 board_h = self.rows * CELL_SIZE
-
+             #center the board on the screen
                 start_x = (640 - board_w) // 2
                 start_y = (480 - board_h) // 2
-
+             #Converting pixels to a cell
                 col = (mx - start_x) // CELL_SIZE
                 row = (my - start_y) // CELL_SIZE
 
                 if 0 <= row < self.rows and 0 <= col < self.cols:
 
-                    # ЛКМ
+                    # left mouse button
                     if event.button == 1:
 
                         if not self.flags[row][col]:
-
+                           #if cell a mine, open all cells and set game_over flag
                             if self.board[row][col] == -1:
 
                                 self.game_over = True
@@ -217,28 +227,27 @@ class MinesweeperGame:
                             else:
                                 self.reveal(row, col)
 
-                    # ПКМ
+                    # right mouse button
                     elif event.button == 3:
-
+                      #taggle flag  
                         if not self.revealed[row][col]:
                             self.flags[row][col] = not self.flags[row][col]
 
                     self.check_win()
 
             if event.type == pygame.KEYDOWN:
-
+               #r button (back to menu)
                 if event.key == pygame.K_r and self.game_over:
                     self.state = "menu"
 
-    # ─────────────────────────────────────
+
 
     def update(self):
         pass
 
-    # ─────────────────────────────────────
-
+  # draw the menu with difficulty options and game title
     def draw_menu(self):
-
+       #background and title 
         self.screen.fill(BG)
 
         self.draw_text(
@@ -256,7 +265,7 @@ class MinesweeperGame:
             (150, 150, 340, 180),
             border_radius=10
         )
-
+      #difficulty buttons   
         self.draw_text(
             self.screen,
             self.fonts["med"],
@@ -284,7 +293,7 @@ class MinesweeperGame:
             RED
         )
 
-    # ─────────────────────────────────────
+    # draw the game board, cells, timer, and game over/win messages
 
     def draw_game(self):
 
@@ -296,7 +305,7 @@ class MinesweeperGame:
         start_x = (640 - board_w) // 2
         start_y = (480 - board_h) // 2
 
-        # панель
+    # panel around the board
 
         pygame.draw.rect(
             self.screen,
@@ -310,7 +319,7 @@ class MinesweeperGame:
             border_radius=12
         )
 
-        # клетки
+        # draw cells    
 
         for r in range(self.rows):
             for c in range(self.cols):
@@ -324,13 +333,13 @@ class MinesweeperGame:
 
                 value = self.board[r][c]
 
-                # открытая
+                # opened cell
                 if self.revealed[r][c]:
 
                     pygame.draw.rect(self.screen, OPEN, rect)
 
                     if value == -1:
-
+                      #draw a red circle for mines
                         pygame.draw.circle(
                             self.screen,
                             RED,
@@ -339,7 +348,7 @@ class MinesweeperGame:
                         )
 
                     elif value > 0:
-
+                      #draw number for non-empty cells
                         text = self.fonts["small"].render(
                             str(value),
                             True,
@@ -354,13 +363,13 @@ class MinesweeperGame:
                             )
                         )
 
-                # закрытая
+                # closed cell
                 else:
 
                     pygame.draw.rect(self.screen, CLOSED, rect)
 
                     if self.flags[r][c]:
-
+                    #dwaw flag 
                         pygame.draw.polygon(
                             self.screen,
                             YELLOW,
@@ -378,7 +387,7 @@ class MinesweeperGame:
                             (rect.x + 8, rect.y + 22),
                             2
                         )
-
+             #draw grid lines
                 pygame.draw.rect(
                     self.screen,
                     GRID,
@@ -386,7 +395,7 @@ class MinesweeperGame:
                     1
                 )
 
-        # таймер
+        # timer 
 
         timer = int(time.time() - self.start_time)
 
@@ -408,7 +417,7 @@ class MinesweeperGame:
             WHITE
         )
 
-        # проигрыш
+        # lose condition
 
         if self.game_over and not self.win:
 
@@ -430,7 +439,7 @@ class MinesweeperGame:
                 WHITE
             )
 
-        # победа
+        # win condition
 
         if self.win:
 
@@ -452,7 +461,7 @@ class MinesweeperGame:
                 WHITE
             )
 
-    # ─────────────────────────────────────
+
 
     def draw(self):
 
@@ -461,5 +470,3 @@ class MinesweeperGame:
 
         elif self.state == "game":
             self.draw_game()
-
-            
